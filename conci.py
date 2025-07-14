@@ -7,8 +7,7 @@ from office365.runtime.auth.user_credential import UserCredential
 from office365.sharepoint.files.file import File
 import io
 from notion_client import Client
-from dotenv import load_dotenv
-import os
+
 
 
 # imagen = Image.open('kashio_cover.jpeg')   
@@ -68,18 +67,10 @@ if payouts_metabase is not None:
     #st.dataframe(payouts_metabase_df, use_container_width=True)
     st.dataframe(pivot_payouts, use_container_width=True)
 
-    load_dotenv()
-
-    username = os.getenv("SHAREPOINT_USER")
-    password = os.getenv("SHAREPOINT_PASS")
-
-    st.write("username:", username)
-    st.write("password:", "****" if password else None)
-
     def guardar_conciliacion(payouts_metabase_df, df_final, nombre_primera_hoja="Payouts_Metabase", nombre_segunda_hoja="Operaciones Bancos"):
         site_url = "https://kashioinc.sharepoint.com/sites/Intranet2021"
-        username = os.getenv('SHAREPOINT_USER')
-        password = os.getenv('SHAREPOINT_PASS')
+        username = "dussand.hurtado@kashio.net"
+        password = "Silvana1505$"
         #password = "Silvana1505$"
         status_placeholder = st.empty()
 
@@ -216,8 +207,8 @@ if payouts_metabase is not None:
                 st.write(f"- Tamaño Excel: {len(excel_content)} bytes")
 
     def registros_notion(conciliacion_payouts):
-        notion_token = os.getenv('NOTION_TOKEN')
-        database_id =  os.getenv('NOTION_DATABASE_ID')
+        notion_token = "ntn_Yk820926168aR213bRsLF9pqG3t88PU0YMqhUazW4ap2qE"
+        database_id =  "21d030ee56d880de8976ce1b1fe6b8fc"
 
         notion = Client(auth=notion_token)
 
