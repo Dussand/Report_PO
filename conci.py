@@ -70,6 +70,12 @@ if payouts_metabase is not None:
 
     load_dotenv()
 
+    username = os.getenv("SHAREPOINT_USER")
+    password = os.getenv("SHAREPOINT_PASS")
+
+    st.write("username:", username)
+    st.write("password:", "****" if password else None)
+
     def guardar_conciliacion(payouts_metabase_df, df_final, nombre_primera_hoja="Payouts_Metabase", nombre_segunda_hoja="Operaciones Bancos"):
         site_url = "https://kashioinc.sharepoint.com/sites/Intranet2021"
         username = os.getenv('SHAREPOINT_USER')
