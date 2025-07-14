@@ -1,0 +1,17 @@
+# Archivos sensibles
+.env
+
+# Cache y compilados de Python
+__pycache__/
+*.pyc
+
+# Entornos virtuales
+.venv/
+env/
+
+# Archivos temporales de Excel
+~$*.xlsx
+
+# Otros comunes
+.DS_Store
+.vscode/
