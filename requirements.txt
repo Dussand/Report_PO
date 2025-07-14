@@ -5,3 +5,4 @@ office365-rest-python-client
 openpyxl
 xlsxwriter
 pillow
+python-dotenv
