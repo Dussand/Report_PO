@@ -365,20 +365,26 @@ if payouts_metabase is not None:
         ].copy()
 
         #extraemos el numero de operacion de la columna Referencia2 y lo reemplazmos en la columna Operación - Número
+        # df_otros['Operación - Número'] = df_otros['Referencia2'].astype(str).apply(
+        #     lambda x: str(int(re.search(r'(\d{5,})$', x).group(1 if re.search(r'(\d{5,})$', x) else None)
+        # )))
+
         df_otros['Operación - Número'] = df_otros['Referencia2'].astype(str).apply(
-            lambda x: str(int(re.search(r'(\d{5,})$', x).group(1 if re.search(r'(\d{5,})$', x) else None)
-        )))
+        lambda x: str(int(re.search(r'(\d{5,})$', x).group(1))) if re.search(r'(\d{5,})$', x) else None
+        )
+
+        #df_otros = df_otros[df_otros['Operación - Número'].notna()]
         
         df_otros['name'] = 'Otros bancos'
 
-        #filtramos el df 
-        
-        # #asignamos bancos
-        # bancos_bbva_filtrado['name'] =  bancos_bbva_filtrado['Referencia2'].apply(
-        # lambda x: 'Otros bancos' if 'BXI' in x else '(BBVA) - BBVA Continental'
-        # )
+        # ==========
+        # manuales
+        # # ==========
 
-        #combinamos ambos df
+        # df_manuales = bancos_bbva[bancos_bbva['Referencia2'].astype(str).str.contains('BXI CT', case=False, na=False)].copy()
+
+        # df_manuales['name'] = 'Manuales'
+        # df_manuales['Operación - Número'] = None
 
         bancos_bbva_filtrado = pd.concat([df_bbva, df_otros], ignore_index=True)
 
@@ -390,38 +396,37 @@ if payouts_metabase is not None:
         return bancos_bbva_filtrado
 
         
-    def procesar_manuales(archivo):
-        manuales_eecc = pd.read_excel(archivo, skiprows=10)
+    # def procesar_manuales(archivo):
+    #     manuales_eecc = pd.read_excel(archivo, skiprows=10)
     
-        columns_name = {
-            'F. Operación': 'Fecha',
-            'Concepto':'Referencia2',
-            'Importe':'Monto',
-            'Nº. Doc.':'Operación - Número'
+    #     columns_name = {
+    #         'F. Operación': 'Fecha',
+    #         'Concepto':'Referencia2',
+    #         'Importe':'Monto',
+    #         'Nº. Doc.':'Operación - Número'
 
-        }
+    #     }
 
-        manuales_eecc = manuales_eecc.rename(columns=columns_name)
+    #     manuales_eecc = manuales_eecc.rename(columns=columns_name)
 
-        #filtramos los valores que contienen BXI CT
-        manuales_eecc = manuales_eecc[manuales_eecc['Referencia2'].str.contains('BXI CT', case=False, na=False)]
+    #     #filtramos los valores que contienen BXI CT
+    #     manuales_eecc = manuales_eecc[manuales_eecc['Referencia2'].str.contains('BXI CT', case=False, na=False)]
 
-        manuales_eecc = manuales_eecc.drop(
-           columns= ['F. Valor', 'Código', 'Nº. Doc.', 'Oficina']
+    #     manuales_eecc = manuales_eecc.drop(
+    #        columns= ['F. Valor', 'Código', 'Nº. Doc.', 'Oficina']
 
-        )
+    #     )
 
-        manuales_eecc['name'] = 'Otros bancos'
+    #     manuales_eecc['name'] = 'Otros bancos'
 
-        return manuales_eecc
+    #     return manuales_eecc
 
 
     #creamos el diccionario de funciones de cada banco
     procesadores_banck = {
         'bcp': procesar_bcp,
         'ibk': procesar_interbank,
-        'bbva':procesar_bbva_otros,
-        'manuales': procesar_manuales
+        'bbva':procesar_bbva_otros
     }
 
     #creamos la seccion para subir el estado de cuenta del banco seleccionado
@@ -498,6 +503,8 @@ if payouts_metabase is not None:
 
         conciliacion_payouts = conciliacion_payouts.rename(columns=columns_diferences)
 
+        conciliacion_payouts['FechaTexto'] = conciliacion_payouts['FechaTexto'].fillna(conciliacion_payouts['FechaTexto'].values[0])
+
         st.dataframe(conciliacion_payouts, use_container_width=True)
 
         #hoy_str = hoy.strftime('%d/%m/%Y')
@@ -509,9 +516,6 @@ if payouts_metabase is not None:
         if 'guardado_metabase' not in st.session_state:
             st.session_state.guardado_metabase = False
 
-        if 'mostrar_diferencias' not in st.session_state:
-            st.session_state.mostrar_diferencias = False
-
         if 'guardar_record_dif' not in st.session_state:
             st.session_state.guardar_record_dif = False
 
@@ -519,10 +523,7 @@ if payouts_metabase is not None:
         if 'Diferencias' in conciliacion_payouts['Estado'].values:
             st.warning('Se detectaron diferencias en la conciliación')
 
-            if st.button('Ver diferencias', use_container_width=True):
-                st.session_state.mostrar_diferencias = True
-            
-            if st.session_state.mostrar_diferencias:
+            if 'Banco metabes' not in merge_op.columns:
                 columns_name = {
                     'name_x': 'Banco metabase',
                     'Operación - Número': 'Numero operacion metabase',
@@ -532,7 +533,17 @@ if payouts_metabase is not None:
                     'Monto': 'Monto estados de cuenta'
                 }
                 merge_op = merge_op.rename(columns=columns_name)
-                st.dataframe(merge_op)
+                
+                #Mostrar solo detalle de diferencias para los bancos que tienen diferencias
+
+                # 1. Filtrar los bancos con diferencia mayor a 0
+                bancos_con_diferencias = conciliacion_payouts[conciliacion_payouts['Diferencia'] > 0]['BANCO'].unique()
+
+                # 2. Filtrar merge_op solo para esos bancos
+                merge_op_filtrado = merge_op[merge_op['Banco metabase'].isin(bancos_con_diferencias)]
+
+                with st.expander('Detalle de diferencias'):
+                    st.dataframe(merge_op_filtrado, use_container_width=True)
 
                 diferencias_ = payouts_metabase_df['ope_psp'].isin(merge_op['Numero operacion metabase'])
                 #payouts_metabase_df.loc[diferencias_, 'Estado'] = f'Conci. {hoy_str} - Diferencias' 
