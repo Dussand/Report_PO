@@ -560,7 +560,7 @@ if payouts_metabase is not None:
                 #creamos una columna con el banco final
                 merge_op['Banco final'] = merge_op['Banco metabase'].combine_first(merge_op['Banco estados de cuenta'])
                 # 1. Filtrar los bancos con diferencia mayor a 0
-                bancos_con_diferencias = conciliacion_payouts[ (conciliacion_payouts['Diferencia'] < 0)]['BANCO'].unique()
+                bancos_con_diferencias = conciliacion_payouts[ (conciliacion_payouts['Diferencia'] > 0) | (conciliacion_payouts['Diferencia'] < 0) ]['BANCO'].unique()
 
                 # 2. Filtrar merge_op solo para esos bancos
                 merge_op_filtrado = merge_op[merge_op['Banco final'].isin(bancos_con_diferencias)]
