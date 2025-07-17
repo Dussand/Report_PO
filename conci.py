@@ -13,6 +13,10 @@ from notion_client import Client
 # imagen = Image.open('kashio_cover.jpeg')   
 # st.image(imagen, use_container_witdh=True)     
 
+#=========================================
+# Primera parte. Subida archivo METABASE
+#=========================================
+
 st.title('Conciliacion PAYOUTS dia anterior')
 st.write('Herramienta para la conciliacion de los pagos del dia anterior')
 
@@ -72,6 +76,16 @@ if payouts_metabase is not None:
 
     #st.dataframe(payouts_metabase_df, use_container_width=True)
     st.dataframe(pivot_payouts, use_container_width=True)
+
+
+    #=========================================
+    #Definicion de funciones 
+    #=========================================
+
+    #=========================================
+    # Guardar conciliacion de la tabla consoolidada de los bancos y metabase
+    #=========================================
+
 
     def guardar_conciliacion(payouts_metabase_df, df_final, nombre_primera_hoja="Payouts_Metabase", nombre_segunda_hoja="Operaciones Bancos"):
         site_url = "https://kashioinc.sharepoint.com/sites/Intranet2021"
@@ -212,6 +226,10 @@ if payouts_metabase is not None:
                 st.write(f"- Carpeta mes: {nueva_carpeta_mes}")
                 st.write(f"- Tamaño Excel: {len(excel_content)} bytes")
 
+    #=========================================
+    # Enviar registro de diferencias de los bancos a Notion
+    #=========================================
+
     def registros_notion(conciliacion_payouts):
         notion_token = "ntn_Yk820926168aR213bRsLF9pqG3t88PU0YMqhUazW4ap2qE"
         database_id =  "21d030ee56d880de8976ce1b1fe6b8fc"
@@ -258,7 +276,14 @@ if payouts_metabase is not None:
             except Exception as e:
                 status_placeholder.error(f'Registro {idx + 1} falló: {e}')
 
+    #=========================================
+    # Definicion de funciones de lectura de bancos
+    #=========================================                
 
+
+    #=========================================
+    # BCP
+    #=========================================  
     #definimos funciones para cada banco
     def procesar_bcp(archivo):
         bcp_eecc = pd.read_excel(archivo, skiprows=4)
@@ -289,6 +314,11 @@ if payouts_metabase is not None:
         bcp_consolidado['name'] = '(BCP) - Banco de Crédito del Perú'
         #total = bcp_eecc['Monto'].sum() * -1
         return bcp_consolidado
+    
+    
+    #=========================================
+    # INTERBANK
+    #=========================================  
     
     def procesar_interbank(archivo):
         ibk_eecc = pd.read_excel(archivo, skiprows=13) #leemos el excel 
@@ -333,6 +363,9 @@ if payouts_metabase is not None:
         
         return ibk_eecc
     
+    #=========================================
+    # BBVA - OTROS BANCOS Y MANUALES
+    #=========================================  
 
     def procesar_bbva_otros(archivo):
         bancos_bbva = pd.read_excel(archivo, skiprows=10)
@@ -395,32 +428,9 @@ if payouts_metabase is not None:
 
         return bancos_bbva_filtrado
 
-        
-    # def procesar_manuales(archivo):
-    #     manuales_eecc = pd.read_excel(archivo, skiprows=10)
-    
-    #     columns_name = {
-    #         'F. Operación': 'Fecha',
-    #         'Concepto':'Referencia2',
-    #         'Importe':'Monto',
-    #         'Nº. Doc.':'Operación - Número'
-
-    #     }
-
-    #     manuales_eecc = manuales_eecc.rename(columns=columns_name)
-
-    #     #filtramos los valores que contienen BXI CT
-    #     manuales_eecc = manuales_eecc[manuales_eecc['Referencia2'].str.contains('BXI CT', case=False, na=False)]
-
-    #     manuales_eecc = manuales_eecc.drop(
-    #        columns= ['F. Valor', 'Código', 'Nº. Doc.', 'Oficina']
-
-    #     )
-
-    #     manuales_eecc['name'] = 'Otros bancos'
-
-    #     return manuales_eecc
-
+    #=========================================
+    # DICCIONAARIO DE FUNCIONES POR BANCO
+    #=========================================  
 
     #creamos el diccionario de funciones de cada banco
     procesadores_banck = {
@@ -428,6 +438,10 @@ if payouts_metabase is not None:
         'ibk': procesar_interbank,
         'bbva':procesar_bbva_otros
     }
+
+    #=========================================
+    # Lectura de los estados de cuenta de los bancos
+    #=========================================  
 
     #creamos la seccion para subir el estado de cuenta del banco seleccionado
     estado_cuenta = st.file_uploader(f'Subir estados de cuenta', type=['xlsx', 'xls'], accept_multiple_files=True
@@ -459,22 +473,27 @@ if payouts_metabase is not None:
     if df_consolidados:
         df_final = pd.concat(df_consolidados, ignore_index=True)
         st.subheader("📊 Datos consolidados de todos los bancos")
-        df_final_group = df_final.groupby(['name', 'Operación - Número']).agg({'Monto':'sum'}).reset_index()
-        group_hour = payouts_metabase_df.groupby(['name', 'ope_psp']).agg({'monto total':'sum', 'hora':lambda x: x.unique()[0]}).reset_index()
+        df_final_group = df_final.groupby(['name', 'Operación - Número']).agg({'Monto':'sum'}).reset_index() #informaciones de los bancos
+        group_hour = payouts_metabase_df.groupby(['name', 'ope_psp']).agg({'monto total':'sum', 'hora':lambda x: x.unique()[0]}).reset_index() #informacion del metabase
         group_hour = group_hour.rename(columns={'ope_psp':'Operación - Número'})
-        # st.write('bancos')
-        st.dataframe(df_final)
-        # st.write('metabase')
-        # st.dataframe(group_hour)
 
-        merge_op = pd.merge(group_hour, df_final_group, on = 'Operación - Número', how='outer')
+        st.dataframe(df_final)
+
+        merge_op = pd.merge(df_final_group, group_hour, on = 'Operación - Número', how='outer')
         merge_op['Diferencias'] = round((merge_op['monto total'] + merge_op['Monto']), 2)
         merge_op = merge_op[merge_op['Diferencias'] != 0]
         #st.dataframe(merge_op)
+
         #mostramos un pivot con los montos de los bancos 
-        bancos_montos = df_final.groupby('name')['Monto'].sum().reset_index()
+        bancos_montos = df_final.groupby('name')['Monto'].sum().reset_index() #pivot de los datos consolidados de los bancos 
         bancos_montos['Monto'] = bancos_montos['Monto'].abs()
         #st.dataframe(bancos_montos, use_container_width=True)
+
+
+   #=========================================
+    # Registro de diferencias entre los bancos metabase y estados de cuenta
+    #========================================= 
+
 
         st.subheader('Conciliacion de los montos de todos los bancos')
         st.write(''' En esta seccion podremos encontrar si hay diferencias
@@ -488,8 +507,7 @@ if payouts_metabase is not None:
         #creamos una columna que nos arroja que banco tienen diferencias para pasar a analizaarlo
         conciliacion_payouts['Estado'] = conciliacion_payouts['Diferencia'].apply(lambda x: 'Conciliado' if x == 0 else 'Diferencias')
         
-        
-
+    
         columns_diferences = {
             'fecha_proceso': 'FechaTexto',
             'name':'BANCO',
@@ -512,6 +530,10 @@ if payouts_metabase is not None:
         #payouts_metabase_df['Estado'] = f'Conci. {hoy_str}'
         payouts_metabase_df['Estado'] = f'Conciliacion_{fecha}' #en caso no funcione borrar
 
+    #=========================================
+    # Vista de diferencias encontradas
+    #========================================= 
+
         # Inicializa el estado de guardado si no existe
         if 'guardado_metabase' not in st.session_state:
             st.session_state.guardado_metabase = False
@@ -522,30 +544,31 @@ if payouts_metabase is not None:
         #mostramos un aviso si hay diferencias
         if 'Diferencias' in conciliacion_payouts['Estado'].values:
             st.warning('Se detectaron diferencias en la conciliación')
-
+         
             if 'Banco metabes' not in merge_op.columns:
                 columns_name = {
-                    'name_x': 'Banco metabase',
-                    'Operación - Número': 'Numero operacion metabase',
+                    'name_x': 'Banco estados de cuenta',
+                    'Operación - Número': 'Numero operacion banco',
+                    'Monto': 'Monto bancos',
+                    'name_y': 'Banco metabase',
                     'monto total': 'Monto metabase',
-                    'hora': 'Hora metabase',
-                    'name_y': 'Banco estados de cuenta',
-                    'Monto': 'Monto estados de cuenta'
+
                 }
                 merge_op = merge_op.rename(columns=columns_name)
                 
                 #Mostrar solo detalle de diferencias para los bancos que tienen diferencias
-
+                #creamos una columna con el banco final
+                merge_op['Banco final'] = merge_op['Banco metabase'].combine_first(merge_op['Banco estados de cuenta'])
                 # 1. Filtrar los bancos con diferencia mayor a 0
-                bancos_con_diferencias = conciliacion_payouts[conciliacion_payouts['Diferencia'] != 0]['BANCO'].unique()
+                bancos_con_diferencias = conciliacion_payouts[ (conciliacion_payouts['Diferencia'] < 0)]['BANCO'].unique()
 
                 # 2. Filtrar merge_op solo para esos bancos
-                merge_op_filtrado = merge_op[merge_op['Banco metabase'].isin(bancos_con_diferencias)]
+                merge_op_filtrado = merge_op[merge_op['Banco final'].isin(bancos_con_diferencias)]
 
                 with st.expander('Detalle de diferencias'):
-                    st.dataframe(merge_op_filtrado, use_container_width=True)
+                    st.dataframe(merge_op_filtrado.iloc[:, :7], use_container_width=True)
 
-                diferencias_ = payouts_metabase_df['ope_psp'].isin(merge_op['Numero operacion metabase'])
+                diferencias_ = payouts_metabase_df['ope_psp'].isin(merge_op['Numero operacion banco'])
                 #payouts_metabase_df.loc[diferencias_, 'Estado'] = f'Conci. {hoy_str} - Diferencias' 
                 payouts_metabase_df.loc[diferencias_, 'Estado'] = f'Conciliacion_{fecha} - Diferencias' #in case doesn't work, delete this
                 metabase_filter_dife = payouts_metabase_df[diferencias_].copy()
