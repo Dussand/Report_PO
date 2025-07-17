@@ -555,7 +555,7 @@ if payouts_metabase is not None:
 
                 }
                 merge_op = merge_op.rename(columns=columns_name)
-                
+                merge_op
                 #Mostrar solo detalle de diferencias para los bancos que tienen diferencias
                 #creamos una columna con el banco final
                 merge_op['Banco final'] = merge_op['Banco metabase'].combine_first(merge_op['Banco estados de cuenta'])
