@@ -338,7 +338,7 @@ if payouts_metabase is not None:
         ibk_eecc = ibk_eecc.rename(columns=columns_name)
 
         # # #filtramos la columna 'Nombre de la solicitud' por los valores que contienen 
-        ibk_eecc = ibk_eecc[ibk_eecc['Referencia2'].str.contains(r'\bPA(Y|YOU|YOUT)?\b', case=False, na=False)]
+        ibk_eecc = ibk_eecc[ibk_eecc['Referencia2'].str.contains(r'\bPA(Y|YOU|YOUT|YO)?\b', case=False, na=False)]
 
         #cambiamos el numero de operacion a sin 0 inicial
         ibk_eecc['Operación - Número'] = ibk_eecc['Operación - Número'].astype(int).astype(str)
@@ -476,9 +476,10 @@ if payouts_metabase is not None:
         df_final_group = df_final.groupby(['name', 'Operación - Número']).agg({'Monto':'sum'}).reset_index() #informaciones de los bancos
         group_hour = payouts_metabase_df.groupby(['name', 'ope_psp']).agg({'monto total':'sum', 'hora':lambda x: x.unique()[0]}).reset_index() #informacion del metabase
         group_hour = group_hour.rename(columns={'ope_psp':'Operación - Número'})
-
+        
         st.dataframe(df_final)
 
+  
         merge_op = pd.merge(df_final_group, group_hour, on = 'Operación - Número', how='outer')
         merge_op['Diferencias'] = round((merge_op['monto total'] + merge_op['Monto']), 2)
         merge_op = merge_op[merge_op['Diferencias'] != 0]
