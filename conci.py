@@ -8,11 +8,6 @@ from office365.sharepoint.files.file import File
 import io
 from notion_client import Client
 
-
-
-# imagen = Image.open('kashio_cover.jpeg')   
-# st.image(imagen, use_container_witdh=True)     
-
 #=========================================
 # Primera parte. Subida archivo METABASE
 #=========================================
@@ -231,8 +226,8 @@ if payouts_metabase is not None:
     #=========================================
 
     def registros_notion(conciliacion_payouts):
-        notion_token = "ntn_Yk820926168aR213bRsLF9pqG3t88PU0YMqhUazW4ap2qE"
-        database_id =  "21d030ee56d880de8976ce1b1fe6b8fc"
+        notion_token = "ntn_OV8209261688Lu7hdNom52kNGhWwBLLfUIBY3z30uMNetm"
+        database_id =  "248030ee56d8808da559c748ab6c0ee0"
 
         notion = Client(auth=notion_token)
 
