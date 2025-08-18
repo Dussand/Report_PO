@@ -166,7 +166,7 @@ if file_uploader_metabase is not None:
 
     if agregar_pospagos:
         try:
-            df_pendientes = leer_excel_sharepoint(site_url, ruta_pendientes, username, password)
+            df_pendientes = leer_excel_sharepoint(ruta_pendientes)
             df_pendientes['fecha_creacion'] = df_pendientes['fecha creacion'].dt.date
             df_pendientes['codigo_operacion'] = df_pendientes.apply(extraer_codigo, axis=1)
 
