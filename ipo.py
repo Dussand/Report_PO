@@ -4,6 +4,7 @@ from datetime import datetime, time, date
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.user_credential import UserCredential
 from office365.sharepoint.files.file import File
+from office365.runtime.auth.client_credential import ClientCredential
 import io
 from notion_client import Client
 
@@ -16,6 +17,35 @@ st.title('Conciliacion Instant - Payouts')
 site_url = "https://kashioinc.sharepoint.com/sites/Intranet2021"
 username = "dussand.hurtado@kashio.net"
 password = "Silvana1505$"
+
+
+def get_ctx() -> ClientContext:
+    "Context con autenticacion app-only (clinet crednetials)"
+    client_id = 'b9250e03-8ddb-448a-9571-3ce7ca91aea2'
+    client_secret = '41dbc48a-9d8a-4ba7-bed1-f84b2fbf3a1c'
+    tenant_id = '4cb14595-301a-44ee-af4e-33b9bb64c9c4'
+
+    if not client_id or not client_secret:
+        raise RuntimeError(
+            'Faltan variebles entorno'
+        )
+    
+    cred = ClientCredential(client_id, client_secret)
+    return ClientContext(site_url).with_credentials(cred)
+
+
+def leer_excel_sharepoint(ruta_server_relative: str) -> pd.DataFrame:
+    """
+    Lee un Excel desde SharePoint usando ruta server-relative.
+    Ejemplo de ruta:
+    /sites/Intranet2021/Shared Documents/Operaciones/PAYOUT/PAYOUTS VARIOS/Conciliaciones Instant Payout/Registros pendientes/2025/08_August/Pendiente_Conciliar_2025-08-15.xlsx
+    """
+    ctx = get_ctx()
+    file = ctx.web.get_file_by_server_relative_url(ruta_server_relative)
+    buf = io.BytesIO()
+    file.download(buf).execute_query()
+    buf.seek(0)
+    return pd.read_excel(buf)
 
 
 #=========================================
@@ -85,16 +115,8 @@ if file_uploader_metabase is not None:
     if st.session_state.ipayouts_data is None:
         st.session_state.ipayouts_data = ipayouts_metabase_df.copy()
         st.info("Datos del archivo cargados")
-    
-    def leer_excel_sharepoint(site_url, ruta_archivo, username, password):
-        ctx = ClientContext(site_url).with_credentials(UserCredential(username, password))
-        file = ctx.web.get_file_by_server_relative_url(ruta_archivo)
-        file_stream = io.BytesIO()
-        file.download(file_stream).execute_query()
-        file_stream.seek(0)
-        return pd.read_excel(file_stream)
-    
 
+    
     # hoy = pd.Timestamp.today().normalize()
     # #anteayer = (hoy - pd.Timedelta(days=2)).date() 
     # ayer = (hoy - pd.Timedelta(days=1)).date()
