@@ -3,8 +3,8 @@ import streamlit as st
 from datetime import datetime, time, date
 from office365.sharepoint.client_context import ClientContext
 from office365.runtime.auth.user_credential import UserCredential
-from office365.sharepoint.files.file import File
 from office365.runtime.auth.client_credential import ClientCredential
+from office365.sharepoint.files.file import File
 import io
 from notion_client import Client
 
@@ -17,36 +17,6 @@ st.title('Conciliacion Instant - Payouts')
 site_url = "https://kashioinc.sharepoint.com/sites/Intranet2021"
 username = "dussand.hurtado@kashio.net"
 password = "Silvana1505$"
-
-
-def get_ctx() -> ClientContext:
-    "Context con autenticacion app-only (clinet crednetials)"
-    client_id = 'b9250e03-8ddb-448a-9571-3ce7ca91aea2'
-    client_secret = '41dbc48a-9d8a-4ba7-bed1-f84b2fbf3a1c'
-    tenant_id = '4cb14595-301a-44ee-af4e-33b9bb64c9c4'
-
-    if not client_id or not client_secret:
-        raise RuntimeError(
-            'Faltan variebles entorno'
-        )
-    
-    cred = ClientCredential(client_id, client_secret)
-    return ClientContext(site_url).with_credentials(cred)
-
-
-def leer_excel_sharepoint(ruta_server_relative: str) -> pd.DataFrame:
-    """
-    Lee un Excel desde SharePoint usando ruta server-relative.
-    Ejemplo de ruta:
-    /sites/Intranet2021/Shared Documents/Operaciones/PAYOUT/PAYOUTS VARIOS/Conciliaciones Instant Payout/Registros pendientes/2025/08_August/Pendiente_Conciliar_2025-08-15.xlsx
-    """
-    ctx = get_ctx()
-    file = ctx.web.get_file_by_server_relative_url(ruta_server_relative)
-    buf = io.BytesIO()
-    file.download(buf).execute_query()
-    buf.seek(0)
-    return pd.read_excel(buf)
-
 
 #=========================================
 # Primera parte. Subida y lectura de archivo METABASE
@@ -61,11 +31,31 @@ if 'ipayouts_data' not in st.session_state:
 if 'ipayouts_data_despues_corte' not in st.session_state:
     st.session_state.ipayouts_data_despues_corte = None
 
-#Subimos el excel de metabase 
-file_uploader_metabase = st.file_uploader('Arrastra el archivo de metabase aquí: ', type=['xlsx'])
+# AGREGAR: Inicializar df_pendientes en session_state
+if 'df_pendientes' not in st.session_state:
+    st.session_state.df_pendientes = None
 
-if file_uploader_metabase is not None:
-    ipayouts_metabase_df = pd.read_excel(file_uploader_metabase) # cargamos el excel
+# AGREGAR: Flag para controlar si ya se procesaron los pendientes
+if 'pendientes_procesados' not in st.session_state:
+    st.session_state.pendientes_procesados = False
+
+#Subimos el excel de metabase 
+file_uploader_metabase = st.file_uploader('Arrastra el archivo de metabase aquí: ', type=['xlsx'], accept_multiple_files=True)
+
+if file_uploader_metabase:
+    #elegir archivo de metabase y pendientes
+    if isinstance(file_uploader_metabase, list):
+        ipayouts_metabase_df = file_uploader_metabase[0]
+        if len(file_uploader_metabase) > 1:
+            st.session_state.df_pendientes = file_uploader_metabase[1]
+        else:
+            st.session_state.df_pendientes = None
+
+    else:
+        ipayouts_metabase_df = file_uploader_metabase
+        st.session_state.df_pendientes = None
+
+    ipayouts_metabase_df = pd.read_excel(ipayouts_metabase_df) # cargamos el excel
 
     columns_drop = [
         'descripcion',
@@ -114,12 +104,8 @@ if file_uploader_metabase is not None:
 
     if st.session_state.ipayouts_data is None:
         st.session_state.ipayouts_data = ipayouts_metabase_df.copy()
-        st.info("Datos del archivo cargados")
-
-    
-    # hoy = pd.Timestamp.today().normalize()
-    # #anteayer = (hoy - pd.Timedelta(days=2)).date() 
-    # ayer = (hoy - pd.Timedelta(days=1)).date()
+        st.session_state.pendientes_procesados = False
+        #st.info("Datos del archivo cargados")
 
 #======================================================
     # # Selector de fecha
@@ -153,30 +139,23 @@ if file_uploader_metabase is not None:
     mes_formateado = fecha_sel.strftime('%m_%B')
     nombre_archivo = f"Pendiente_Conciliar_{ayer_para_cortes}.xlsx"
 
-#======================================================
-    
-    ruta_pendientes = f"/sites/Intranet2021/Shared Documents/Operaciones/PAYOUT/PAYOUTS VARIOS/Conciliaciones Instant Payout/Registros pendientes/{año}/{mes_formateado}/{nombre_archivo}"
-    # ruta_pendientes
-    #ruta_pendientes = f"/sites/Intranet2021/Shared Documents/Operaciones/PAYOUT/PAYOUTS VARIOS/Conciliaciones Instant Payout/Registros pendientes/2025/08_August/{nombre_archivo}"
-    # AHORA trabajamos con los datos del session_state en lugar de la variable local
-
-    # Esto permite que los datos persistan entre ejecuciones
-    if st.session_state.ipayouts_data is not None:
-        agregar_pospagos = st.button(f'AGREGAR MOVIMIENTOS PENDIENTES: {ayer_para_cortes}', use_container_width=True)
-
-    if agregar_pospagos:
+    if st.session_state.df_pendientes is not None and not st.session_state.pendientes_procesados:
         try:
-            df_pendientes = leer_excel_sharepoint(ruta_pendientes)
+            df_pendientes = pd.read_excel(st.session_state.df_pendientes)
             df_pendientes['fecha_creacion'] = df_pendientes['fecha creacion'].dt.date
             df_pendientes['codigo_operacion'] = df_pendientes.apply(extraer_codigo, axis=1)
 
             st.session_state.ipayouts_data  = pd.concat([st.session_state.ipayouts_data , df_pendientes], ignore_index=True)
             # ipayouts_metabase_df = ipayouts_metabase_df.drop_duplicates(subset=['codigo_operacion'])
 
+            st.session_state.pendientes_procesados = True
             st.success(f"Se agregaron los movimientos pendientes del {ayer_para_cortes}.")
 
         except Exception as e:
             st.warning(f"No se pudo cargar pendientes del {ayer_para_cortes}: {e}")
+
+
+#=====================================================
 
     hora_corte_bbva = time(22, 10) # 22:10 pm
     hora_corte_bcp_yape = time(21, 15)
@@ -840,14 +819,36 @@ if file_uploader_metabase is not None:
         c1, c2 = st.columns(2)
 
         with c1:
-            cantidad_movimientos = len(st.session_state.ipayouts_data_despues_corte)
-            guardar_pospagos = st.button(f'GUARDAR {cantidad_movimientos} MOVIMIENTOS PENDIENTES', use_container_width=True)
-            if not st.session_state.guardad_registros_pendientes:
-                if guardar_pospagos:
-                    guardar_conciliacion(st.session_state.ipayouts_data_despues_corte)
-                    st.session_state.guardad_registros_pendientes = True
-                    st.rerun()
+            # cantidad_movimientos = len(st.session_state.ipayouts_data_despues_corte)
+            # guardar_pospagos = st.button(f'GUARDAR {cantidad_movimientos} MOVIMIENTOS PENDIENTES', use_container_width=True)
+            # if not st.session_state.guardad_registros_pendientes:
+            #     if guardar_pospagos:
+            #         guardar_conciliacion(st.session_state.ipayouts_data_despues_corte)
+            #         st.session_state.guardad_registros_pendientes = True
+            #         st.rerun()
             
+            cantidad_movimientos = len(st.session_state.ipayouts_data_despues_corte)
+
+            if cantidad_movimientos > 0:
+                archivo_nombre = f'Pendiente_Conciliar_{fecha_sel}.xlsx'
+
+                # Convertimos el DataFrame en Excel en memoria
+                excel_buffer = io.BytesIO()
+                with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                    st.session_state.ipayouts_data_despues_corte.to_excel(writer, index=False)
+
+                excel_data = excel_buffer.getvalue()
+
+                st.download_button(
+                    label=f'DESCARGAR {cantidad_movimientos} MOVIMIENTOS PENDIENTES',
+                    data=excel_data,
+                    file_name=archivo_nombre,
+                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    use_container_width=True
+                )
+            else:
+                st.info("No hay movimientos pendientes para descargar.")
+                        
         with c2:
             cantidad_movimientos_conciliados = len(codigos_encontrados)
             if 'guardar_conciliacion' not in st.session_state:
