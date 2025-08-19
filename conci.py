@@ -678,7 +678,7 @@ if payouts_metabase is not None:
                     #         guardar_conciliacion(payouts_metabase_df, df_final)
 
                     if not st.session_state.guardado_metabase:
-                        archivo_nombre = f'Conciliaion_{fecha}.xlsx'
+                        archivo_nombre = f'Conciliacion_{fecha}.xlsx'
 
                         #agregamos la columna de estado antes de exportar
                         payouts_metabase_df['Estado'] = f'Conciliacion_{fecha}' #en caso no funcione borrar
