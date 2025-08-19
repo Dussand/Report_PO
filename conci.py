@@ -671,11 +671,33 @@ if payouts_metabase is not None:
 
                 k1, k2 = st.columns(2)
                 with k1:
-                    if not st.session_state.guardado_metabase:
-                        if st.button('Guardar conciliación en SharePoint', use_container_width=True):
-                            #payouts_metabase_df['Estado'] = f'Conci. {hoy_str}'
-                            payouts_metabase_df['Estado'] = f'Conciliacion_{fecha}' #en caso no funcione borrar
-                            guardar_conciliacion(payouts_metabase_df, df_final)
+                    # if not st.session_state.guardado_metabase:
+                    #     if st.button('Guardar conciliación en SharePoint', use_container_width=True):
+                    #         #payouts_metabase_df['Estado'] = f'Conci. {hoy_str}'
+                    #         payouts_metabase_df['Estado'] = f'Conciliacion_{fecha}' #en caso no funcione borrar
+                    #         guardar_conciliacion(payouts_metabase_df, df_final)
+
+                    if not st.session_state.guardad_metabase:
+                        archivo_nombre = f'Conciliaion_{fecha}.xlsx'
+
+                        #agregamos la columna de estado antes de exportar
+                        payouts_metabase_df['Estado'] = f'Conciliacion_{fecha}' #en caso no funcione borrar
+
+                        excel_buffer = io.BytesIO()
+                        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                            payouts_metabase_df.to_excel(writer, sheet_name='Payouts_Metabase', index=False)
+                            df_final.to_excel(writer, sheet_name='Operaciones Bancos', index=False)
+
+                        excel_data = excel_buffer.getvalue()
+
+                        st.download_button(
+                            label='DESCARGAR CONCILIACIÓN',
+                            data=excel_data,
+                            file_name=archivo_nombre,
+                            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            use_container_width=True
+                        )
+                        
                 with k2:
                     if not st.session_state.guardar_record_dif:
                         if st.button('Registrar conciliacion en Notion', use_container_width=True):
