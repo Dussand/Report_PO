@@ -227,7 +227,7 @@ if payouts_metabase is not None:
 
     def registros_notion(conciliacion_payouts):
         notion_token = "ntn_OV8209261688Lu7hdNom52kNGhWwBLLfUIBY3z30uMNetm"
-        database_id =  "21d030ee56d880de8976ce1b1fe6b8fc"
+        database_id =  "21d030ee56d8818bb4f9000c481c814d"
 
         notion = Client(auth=notion_token)
 
