@@ -68,7 +68,7 @@ if payouts_metabase is not None:
     }
     
     group_hour = group_hour.rename(columns=columns_name)
-    pivot_payouts['monto total'] = pivot_payouts['monto total'].apply(lambda x: f'{x:,.2f}' )
+
     #st.dataframe(payouts_metabase_df, use_container_width=True)
     st.dataframe(pivot_payouts, use_container_width=True)
 
