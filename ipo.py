@@ -112,7 +112,7 @@ if file_uploader_metabase:
 
     # Inicializamos una sola vez
     if "fecha_sel" not in st.session_state:
-        st.session_state.fecha_sel = date.today()
+        st.session_state.fecha_sel = date.today() - pd.Timedelta(days=1)
 
     fecha_sel= st.date_input("SELECCIONAR FECHA DE DIA DE CONCILIACION: ", value=st.session_state.fecha_sel, key='fecha_sel') #seleccionar fecha del dia que se va a conciliar, o sea la de ayer
 
@@ -850,14 +850,35 @@ if file_uploader_metabase:
                 st.info("No hay movimientos pendientes para descargar.")
                         
         with c2:
+            # cantidad_movimientos_conciliados = len(codigos_encontrados)
+            # if 'guardar_conciliacion' not in st.session_state:
+            #     st.session_state.guardar_conciliacion = False
+
+            # guardar_registros_conciliados = st.button(f'GUARDAR {cantidad_movimientos_conciliados} REGISTROS PAGADOS', use_container_width=True)
+
+            # if not st.session_state.guardar_conciliacion:
+            #     if guardar_registros_conciliados:
+            #         guardar_registros_pagados(codigos_encontrados)
+            #         st.session_state.guardar_conciliacion = True  
             cantidad_movimientos_conciliados = len(codigos_encontrados)
-            if 'guardar_conciliacion' not in st.session_state:
-                st.session_state.guardar_conciliacion = False
 
-            guardar_registros_conciliados = st.button(f'GUARDAR {cantidad_movimientos_conciliados} REGISTROS PAGADOS', use_container_width=True)
+            if cantidad_movimientos_conciliados > 0:
+                archivo_nombre_parquet = f'OperacionesPagadas_{fecha_sel}.parquet'
 
-            if not st.session_state.guardar_conciliacion:
-                if guardar_registros_conciliados:
-                    guardar_registros_pagados(codigos_encontrados)
-                    st.session_state.guardar_conciliacion = True
-        
+                if 'documento' in codigos_encontrados.columns:
+                    codigos_encontrados['documento'] = codigos_encontrados['documento'].astype('string').fillna('')
+
+                #convritmos el dataframe a parquet en memoria
+                parquet_buffer = io.BytesIO()
+                codigos_encontrados.to_parquet(parquet_buffer, index=False, engine='pyarrow')
+                parquet_data = parquet_buffer.getvalue()
+
+                st.download_button(
+                    label=f'DESCARGAR {cantidad_movimientos_conciliados} REGISTROS PAGADOS',
+                    data=parquet_data,
+                    file_name=archivo_nombre_parquet,
+                    mime='application/octet-stream',
+                    use_container_width=True
+                )
+            else:
+                st.info('No hay registros pagados para descargar')
