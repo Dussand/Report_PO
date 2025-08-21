@@ -157,7 +157,7 @@ if file_uploader_metabase:
 
 #=====================================================
 
-    hora_corte_bbva = time(22, 00) # 22:10 pm
+    hora_corte_bbva = time(22, 00) # 22:00 pm
     hora_corte_bcp_yape = time(21, 15)
         
     # Combinar fecha de ayer con hora de corte
