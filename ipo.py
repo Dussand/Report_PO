@@ -805,8 +805,8 @@ if file_uploader_metabase:
             
             diferencia_montos =round( suma_monto - suma_diferencias_filtro,2)
 
-            cantidad_diferencias = len(concicliacion_mañana_filtrado)
-            
+            cantidad_diferencias = len(concicliacion_mañana_filtrado) #numero de operacioens encontradas en la seccion de diferencias 
+
 
             if cantidad_diferencias == 0:
                 st.success('Sin diferencias')    
