@@ -791,10 +791,10 @@ if file_uploader_metabase:
             else: 
                 concicliacion_mañana_filtrado = concicliacion_mañana_no_encontrado[concicliacion_mañana_no_encontrado['banco'] == bancos_unicos_sb] #filtramos por el selectbox incluido
 
-     
 
+            #concicliacion_mañana_filtrado
             concicliacion_mañana_filtrado = concicliacion_mañana_filtrado[['empresa', 'fecha creacion','fecha operacion', 'inv public_id', 'po_public_id', 'Cliente'
-                                                                                    , 'documento', 'numero de cuenta', 'CCI', 'monto', 'banco', 'numero de operacion', 'estado']] #mostramos las columnas necesarias
+                                                                                    , 'documento', 'numero de cuenta', 'CCI', 'monto', 'banco', 'numero de operacion', 'estado', 'codigo_operacion']] #mostramos las columnas necesarias
         
 
             st.dataframe(concicliacion_mañana_filtrado, use_container_width=True) 
@@ -804,8 +804,16 @@ if file_uploader_metabase:
             suma_diferencias_filtro = round(diferencias_filtro['Diferencia'].sum(),2)
             
             diferencia_montos =round( suma_monto - suma_diferencias_filtro,2)
+
+            cantidad_diferencias = len(concicliacion_mañana_filtrado)
             
 
+            if cantidad_diferencias == 0:
+                st.success('Sin diferencias')    
+            else:
+                st.warning(f'{cantidad_diferencias} diferencias encontradas')
+            
+            
             if diferencia_montos == 0: #suma monto: suma de la columna monto del df de detalle de diferencias suma_diferencias: la suma de la columna Diferecnias del df de conciliacion
                 st.success('Montos iguales')
             else:
