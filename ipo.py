@@ -691,7 +691,7 @@ if file_uploader_metabase:
         df_final = df_final[['fecha', 'importe', 'codigo_operacion', 'banco']]
         df_final['fecha'] = pd.to_datetime(df_final['fecha']).dt.date
 
-        #st.dataframe(df_final, use_container_width=True)
+        st.dataframe(df_final, use_container_width=True)
 
         #mostramos un pivot con los montos de los bancos
         montos_bancos_eecc = df_final.groupby(['fecha','banco'])['importe'].sum().abs().reset_index()
@@ -843,7 +843,8 @@ if file_uploader_metabase:
                 # Convertimos el DataFrame en Excel en memoria
                 excel_buffer = io.BytesIO()
                 with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-                    st.session_state.ipayouts_data_despues_corte.to_excel(writer, index=False)
+                    st.session_state.ipayouts_data_despues_corte.to_excel(writer,sheet_name='Pendientes_conciliar', index=False)
+                    df_final.to_excel(writer, sheet_name='eecc_consolidados', index=False)
 
                 excel_data = excel_buffer.getvalue()
 
