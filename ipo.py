@@ -89,7 +89,7 @@ if file_uploader_metabase:
         if banco == '(BCP) - Banco de Crédito del Perú':
              codigo = concepto[18:27]
         elif banco == '(BBVA) - BBVA Continental ':
-             codigo = concepto[:20]
+             codigo = concepto[:10]
         elif banco == 'Yape':
              codigo = concepto[-11:]
         else:
@@ -636,7 +636,7 @@ if file_uploader_metabase:
         estado_cuenta_df['descripcion_operacion'] = estado_cuenta_df['descripcion_operacion'].astype(str)
 
         estado_cuenta_df['codigo_operacion'] = (
-            estado_cuenta_df['Concepto'].astype(str).str[-20:] +
+            estado_cuenta_df['Concepto'].astype(str).str[-10:] +
             estado_cuenta_df['importe'].apply(lambda x: str(abs(x) * -1)).str.replace('.', '').str.replace(',', '').str[1:5]
         )
 
@@ -696,6 +696,7 @@ if file_uploader_metabase:
         #mostramos un pivot con los montos de los bancos
         montos_bancos_eecc = df_final.groupby(['fecha','banco'])['importe'].sum().abs().reset_index()
         st.dataframe(montos_bancos_eecc, use_container_width=True)
+        st.dataframe(montos_bancos_eecc.dtypes, use_container_width=True)
 
 #============================================================
 # Cuarta parte. Cruce de tablas para encontrar  diferencias
@@ -740,7 +741,8 @@ if file_uploader_metabase:
             st.session_state.codigos_encontrados_df = codigos_encontrados
             
         # Alias local
-        codigos_encontrados = st.session_state.codigos_encontrados_df  
+        codigos_encontrados = st.session_state.codigos_encontrados_df 
+        codigos_encontrados 
         
         #creamos un pivot para mostrar los importes de los bancos por bancos
         codigos_encontrados_pivot = codigos_encontrados.groupby('banco')[['importe']].sum().reset_index()
