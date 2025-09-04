@@ -692,7 +692,7 @@ if file_uploader_metabase:
         df_final = df_final[['fecha', 'importe', 'codigo_operacion', 'banco']]
         df_final['fecha'] = pd.to_datetime(df_final['fecha']).dt.date
 
-        st.dataframe(df_final, use_container_width=True)
+        #st.dataframe(df_final, use_container_width=True)
 
         #mostramos un pivot con los montos de los bancos
         montos_bancos_eecc = df_final.groupby(['fecha','banco'])['importe'].sum().abs().reset_index()
@@ -727,7 +727,7 @@ if file_uploader_metabase:
         #hacemos un merge que me traiga el importe de los banccos respecto al codigo de operacion, desde el archivo de bancos
             st.session_state.ipayouts_data = st.session_state.ipayouts_data.merge(df_final[['codigo_operacion', 'importe']], left_on='codigo_operacion', right_on='codigo_operacion', how='left')
             st.session_state.merge_realizado = True
-        st.dataframe(st.session_state.ipayouts_data)
+        #st.dataframe(st.session_state.ipayouts_data)
         #creamos una columna de saldo para revisar que no hayan operaciones con distintos importes. 
         st.session_state.ipayouts_data['saldo'] = (st.session_state.ipayouts_data['monto'] + st.session_state.ipayouts_data['importe']).fillna('No valor')
         #st.session_state.ipayouts_data
