@@ -142,6 +142,7 @@ if file_uploader_metabase:
     if st.session_state.df_pendientes is not None and not st.session_state.pendientes_procesados:
         try:
             df_pendientes = pd.read_excel(st.session_state.df_pendientes)
+            df_pendientes = df_pendientes.iloc[:, :18]
             df_pendientes['fecha_creacion'] = df_pendientes['fecha creacion'].dt.date
             df_pendientes['codigo_operacion'] = df_pendientes.apply(extraer_codigo, axis=1)
 
@@ -696,7 +697,7 @@ if file_uploader_metabase:
         #mostramos un pivot con los montos de los bancos
         montos_bancos_eecc = df_final.groupby(['fecha','banco'])['importe'].sum().abs().reset_index()
         st.dataframe(montos_bancos_eecc, use_container_width=True)
-        st.dataframe(montos_bancos_eecc.dtypes, use_container_width=True)
+        #st.dataframe(montos_bancos_eecc.dtypes, use_container_width=True)
 
 #============================================================
 # Cuarta parte. Cruce de tablas para encontrar  diferencias
@@ -726,7 +727,7 @@ if file_uploader_metabase:
         #hacemos un merge que me traiga el importe de los banccos respecto al codigo de operacion, desde el archivo de bancos
             st.session_state.ipayouts_data = st.session_state.ipayouts_data.merge(df_final[['codigo_operacion', 'importe']], left_on='codigo_operacion', right_on='codigo_operacion', how='left')
             st.session_state.merge_realizado = True
-
+        st.dataframe(st.session_state.ipayouts_data)
         #creamos una columna de saldo para revisar que no hayan operaciones con distintos importes. 
         st.session_state.ipayouts_data['saldo'] = (st.session_state.ipayouts_data['monto'] + st.session_state.ipayouts_data['importe']).fillna('No valor')
         #st.session_state.ipayouts_data
