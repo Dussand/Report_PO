@@ -743,7 +743,7 @@ if file_uploader_metabase:
             
         # Alias local
         codigos_encontrados = st.session_state.codigos_encontrados_df 
-        codigos_encontrados 
+        #codigos_encontrados 
         
         #creamos un pivot para mostrar los importes de los bancos por bancos
         codigos_encontrados_pivot = codigos_encontrados.groupby('banco')[['importe']].sum().reset_index()
