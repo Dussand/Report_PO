@@ -74,7 +74,7 @@ if file_uploader_metabase:
     alcance_bancos = [
         '(BCP) - Banco de Crédito del Perú',
         'Yape',
-        '(BBVA) - BBVA Continental '
+        '(BBVA) - BBVA Continental'
     ]
 
     ipayouts_metabase_df = ipayouts_metabase_df[ipayouts_metabase_df['banco'].isin(alcance_bancos)] #filtramos los bancos que vamos a usar
@@ -88,7 +88,7 @@ if file_uploader_metabase:
 
         if banco == '(BCP) - Banco de Crédito del Perú':
              codigo = concepto[18:27]
-        elif banco == '(BBVA) - BBVA Continental ':
+        elif banco == '(BBVA) - BBVA Continental':
              codigo = concepto[:10]
         elif banco == 'Yape':
              codigo = concepto[-11:]
@@ -167,7 +167,7 @@ if file_uploader_metabase:
 
     # Crear columna con datetime de corte según banco
     st.session_state.ipayouts_data['corte_datetime'] = st.session_state.ipayouts_data['banco'].apply(
-        lambda b: dt_corte_bbva if '(BBVA) - BBVA Continental ' in b else dt_corte_bcp_yape
+        lambda b: dt_corte_bbva if '(BBVA) - BBVA Continental' in b else dt_corte_bcp_yape
     )
 
         # Crear columna 'estado_corte'
@@ -641,7 +641,7 @@ if file_uploader_metabase:
             estado_cuenta_df['importe'].apply(lambda x: str(abs(x) * -1)).str.replace('.', '').str.replace(',', '').str[1:5]
         )
 
-        estado_cuenta_df['banco'] = '(BBVA) - BBVA Continental '
+        estado_cuenta_df['banco'] = '(BBVA) - BBVA Continental'
         return estado_cuenta_df
 
 
