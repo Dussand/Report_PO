@@ -364,7 +364,7 @@ if payouts_metabase is not None:
 
     def procesar_bbva_otros(archivo):
         bancos_bbva = pd.read_excel(archivo, skiprows=10)
-
+        
         # Renombrar columnas
         columns_name = {
             'F. Operación': 'Fecha',
@@ -373,19 +373,19 @@ if payouts_metabase is not None:
             'Nº. Doc.':'Operación - Número'
         }
         bancos_bbva = bancos_bbva.rename(columns=columns_name)
-
+        
         #filtrar los op del metabase
-        valores_metabase = payouts_metabase_df[payouts_metabase_df['name'] == '(BBVA) - BBVA Continental ']['ope_psp'].dropna().astype(str).unique()
-
+        valores_metabase = payouts_metabase_df[payouts_metabase_df['name'] == '(BBVA) - BBVA Continental']['ope_psp'].dropna().astype(str).unique()
+        
         #filtramos el metabase con los valores_metabase que son los numeros de op unicos del metabase
         df_bbva = bancos_bbva[
             bancos_bbva['Operación - Número'].astype(str).apply(
                 lambda x: any(valor in x for valor in valores_metabase)
             )
         ].copy()
-
         df_bbva['Operación - Número'] = df_bbva['Operación - Número'].astype(int).astype(str)
-        df_bbva['name'] = '(BBVA) - BBVA Continental '
+        df_bbva['name'] = '(BBVA) - BBVA Continental'
+        
 
         # DataFrame con filas que contienen "BXI"
         df_otros = bancos_bbva[
