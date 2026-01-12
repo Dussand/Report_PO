@@ -14,10 +14,9 @@ st.title('Conciliacion Instant - Payouts')
 # Accesos Sharepoint - Notion
 #=========================================
 
-site_url = "https://kashioinc.sharepoint.com/sites/Intranet2021"
-username = "dussand.hurtado@kashio.net"
-password = "Silvana1505$"
-
+# site_url = "https://kashioinc.sharepoint.com/sites/Intranet2021"
+#username
+#password
 #=========================================
 # Primera parte. Subida y lectura de archivo METABASE
 #=========================================

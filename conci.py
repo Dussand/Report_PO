@@ -57,7 +57,7 @@ if payouts_metabase is not None:
     payouts_metabase_df = payouts_metabase_df[payouts_metabase_df['moneda'] == 'PEN']
 
     #filtramos todos los BANCOs menos scotiabank 
-    payouts_metabase_df = payouts_metabase_df[payouts_metabase_df['name'] != '(Scotiabank)- Scotiabank ']    
+    payouts_metabase_df = payouts_metabase_df[payouts_metabase_df['name'] != '(Scotiabank)- Scotiabank']    
 
     #creamos una tabla pivot con los montos de cada banco
     pivot_payouts = payouts_metabase_df.groupby(['fecha_proceso','name'])['monto total'].sum().reset_index()
