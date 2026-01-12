@@ -871,52 +871,25 @@ if file_uploader_metabase:
             #     if guardar_registros_conciliados:
             #         guardar_registros_pagados(codigos_encontrados)
             #         st.session_state.guardar_conciliacion = True  
-            # cantidad_movimientos_conciliados = len(codigos_encontrados)
-
-            # if cantidad_movimientos_conciliados > 0:
-            #     archivo_nombre_parquet = f'OperacionesPagadas_{fecha_sel}.parquet'
-
-            #     if 'documento' in codigos_encontrados.columns:
-            #         codigos_encontrados['documento'] = codigos_encontrados['documento'].astype('string').fillna('')
-
-            #     #convritmos el dataframe a parquet en memoria
-            #     parquet_buffer = io.BytesIO()
-            #     codigos_encontrados.to_parquet(parquet_buffer, index=False, engine='pyarrow')
-            #     parquet_data = parquet_buffer.getvalue()
-
-            #     st.download_button(
-            #         label=f'DESCARGAR {cantidad_movimientos_conciliados} REGISTROS PAGADOS',
-            #         data=parquet_data,
-            #         file_name=archivo_nombre_parquet,
-            #         mime='application/octet-stream',
-            #         use_container_width=True
-            #     )
-            # else:
-            #     st.info('No hay registros pagados para descargar')
-
             cantidad_movimientos_conciliados = len(codigos_encontrados)
 
-            generar_parquet = st.button(
-                f"GENERAR PARQUET ({cantidad_movimientos_conciliados} registros)",
-                use_container_width=True
-            )
+            if cantidad_movimientos_conciliados > 0:
+                archivo_nombre_parquet = f'OperacionesPagadas_{fecha_sel}.parquet'
 
-            if generar_parquet:
-                df_parquet = codigos_encontrados.copy()
+                if 'documento' in codigos_encontrados.columns:
+                    codigos_encontrados['documento'] = codigos_encontrados['documento'].astype('string').fillna('')
 
-                # Blindaje de tipos (CRÍTICO)
-                for col in df_parquet.columns:
-                    if df_parquet[col].dtype == "object":
-                        df_parquet[col] = df_parquet[col].astype(str)
-
+                #convritmos el dataframe a parquet en memoria
                 parquet_buffer = io.BytesIO()
-                df_parquet.to_parquet(parquet_buffer, index=False)
+                codigos_encontrados.to_parquet(parquet_buffer, index=False, engine='pyarrow')
+                parquet_data = parquet_buffer.getvalue()
 
                 st.download_button(
-                    label="DESCARGAR PARQUET",
-                    data=parquet_buffer.getvalue(),
-                    file_name=f"OperacionesPagadas_{fecha_sel}.parquet",
-                    mime="application/octet-stream",
+                    label=f'DESCARGAR {cantidad_movimientos_conciliados} REGISTROS PAGADOS',
+                    data=parquet_data,
+                    file_name=archivo_nombre_parquet,
+                    mime='application/octet-stream',
                     use_container_width=True
                 )
-
+            else:
+                st.info('No hay registros pagados para descargar')
