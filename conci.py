@@ -72,210 +72,6 @@ if payouts_metabase is not None:
     #st.dataframe(payouts_metabase_df, use_container_width=True)
     st.dataframe(pivot_payouts, use_container_width=True)
 
-
-    #=========================================
-    #Definicion de funciones 
-    #=========================================
-
-    #=========================================
-    # Guardar conciliacion de la tabla consoolidada de los bancos y metabase
-    #=========================================
-
-
-    def guardar_conciliacion(payouts_metabase_df, df_final, nombre_primera_hoja="Payouts_Metabase", nombre_segunda_hoja="Operaciones Bancos"):
-        site_url = "https://kashioinc.sharepoint.com/sites/Intranet2021"
-        username = "dussand.hurtado@kashio.net"
-        password = "Silvana1505$"
-        #password = "Silvana1505$"
-        status_placeholder = st.empty()
-
-        #with st.spinner():
-
-        status_placeholder.info('Conectando a Sharepoint...')
-
-        try:
-            # Conectamos al sitio
-            ctx = ClientContext(site_url).with_credentials(UserCredential(username, password))
-            
-            # Ruta relativa a la carpeta en SharePoint (CORREGIDA: debe empezar con /sites/...)
-            folder_url = "/sites/Intranet2021/Shared Documents/Operaciones/PAYOUT/PAYOUTS VARIOS/Conciliaciones Payout"
-
-            # Verificamos que la carpeta exista
-            folder = ctx.web.get_folder_by_server_relative_url(folder_url)
-            ctx.load(folder)
-            ctx.execute_query()
-
-            # Si todo fue bien:
-            #st.success(" Conectado correctamente a la carpeta 'Conciliaciones Payout'")
-
-        except Exception as e:
-            st.error(f"No se pudo conectar: {e}")
-            return  # Salir si no se puede conectar
-
-        # Obtener el año actual 
-        año_actual = datetime.now().year #para la carpeta de año
-        mes_actual = datetime.now().strftime('%m_%B') #para la carpeta de mes
-        #archivo_nombre = ayer.strftime('Conciliacion_%Y_%m_%d.xlsx')
-        archivo_nombre = f'Conciliacion_{fecha}.xlsx' #in case doesn't work, delete this
-
-        
-        # Rutas de las carpetas del año y mes (CORREGIDAS)
-        nueva_carpeta_año = f'{folder_url}/{año_actual}'
-        nueva_carpeta_mes = f'{nueva_carpeta_año}/{mes_actual}'
-
-        status_placeholder.info(f'Verificando carpeta del año {año_actual}...')
-
-        # Verificamos si existe la carpeta del año
-        try:
-            folder_año = ctx.web.get_folder_by_server_relative_url(nueva_carpeta_año)
-            ctx.load(folder_año)
-            ctx.execute_query()
-            #st.info(f'La carpeta del año {año_actual} ya existe')
-        except:
-            try:
-                folder_base = ctx.web.get_folder_by_server_relative_url(folder_url)
-                folder_base.folders.add(str(año_actual))  # Convertir a string
-                ctx.execute_query()
-                #st.success(f'La carpeta del año {año_actual} creada exitosamente')
-            except Exception as e:
-                st.error(f'Error al crear la carpeta del año {año_actual}: {e}')
-                return
-        
-        status_placeholder.info(f'Verificando carpeta del mes {mes_actual}...')
-
-        # Verificamos si la carpeta del mes ya existe
-        try:
-            folder_mes = ctx.web.get_folder_by_server_relative_url(nueva_carpeta_mes)
-            ctx.load(folder_mes)
-            ctx.execute_query()
-            #st.info(f"La carpeta del mes {mes_actual} ya existe.")
-        except:
-            try:
-                folder_anio = ctx.web.get_folder_by_server_relative_url(nueva_carpeta_año)
-                folder_anio.folders.add(mes_actual)
-                ctx.execute_query()
-                #st.success(f"Carpeta del mes {mes_actual} creada exitosamente.")
-            except Exception as e:
-                st.error(f"Error al crear la carpeta del mes {mes_actual}: {e}")
-                return
-            
-
-        status_placeholder.info(f'Preparando archivo excel...')
-
-        # Guardar archivo CSV con nombre del día de ayer
-        try:
-            # CORREGIDO: Ruta completa para el archivo
-            ruta_archivo_completa = f"{nueva_carpeta_mes}/{archivo_nombre}"
-            
-            # Convertimos ambos DataFrames a Excel en memoria
-            excel_buffer = io.BytesIO()
-            with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-                # Guardar el primer DataFrame (Payouts Metabase)
-                payouts_metabase_df.to_excel(writer, sheet_name=nombre_primera_hoja, index=False)
-                #st.info(f"📊 Hoja 1: '{nombre_primera_hoja}' - {len(payouts_metabase_df)} registros")
-                
-                # Guardar el segundo DataFrame (df_final)
-                df_final.to_excel(writer, sheet_name=nombre_segunda_hoja, index=False)
-                #st.info(f"📊 Hoja 2: '{nombre_segunda_hoja}' - {len(df_final)} registros")
-                    
-            excel_content = excel_buffer.getvalue()
-
-            status_placeholder.info('Subiendo archivo a SharePoint...')
-
-            #st.write("📂 Ruta final de guardado:", ruta_archivo_completa)
-            
-            # MÉTODO CORREGIDO: Usar upload_file en lugar de File.save_binary
-            target_folder = ctx.web.get_folder_by_server_relative_url(nueva_carpeta_mes)
-            target_folder.upload_file(archivo_nombre, excel_content).execute_query()
-
-            status_placeholder.empty()
-            
-            st.success(f"Archivo '{archivo_nombre}' guardado correctamente en SharePoint.")
-            
-        except Exception as e:
-            st.error(f"Error al guardar el archivo: {e}")
-
-            status_placeholder.info('Intentando metodo alternativo...')
-            
-            # Método alternativo si el anterior falla
-            try:
-                #st.info("🔄 Intentando método alternativo...")
-                
-                # Método alternativo usando File.save_binary con ruta completa
-                File.save_binary(ctx, ruta_archivo_completa, excel_content)
-
-                #impiar el placeholder del estado
-                status_placeholder.empty()
-
-                #Mensaje de exito
-                #st.success(f"Archivo '{archivo_nombre}' guardado con método alternativo (2 hojas).")
-                
-            except Exception as e2:
-                status_placeholder.empty()
-                st.error(f"Error también con método alternativo: {e2}")
-                
-                # Mostrar información de debug
-                st.write("🔍 **Información de debug:**")
-                st.write(f"- Ruta completa: {ruta_archivo_completa}")
-                st.write(f"- Nombre archivo: {archivo_nombre}")
-                st.write(f"- Carpeta mes: {nueva_carpeta_mes}")
-                st.write(f"- Tamaño Excel: {len(excel_content)} bytes")
-
-    #=========================================
-    # Enviar registro de diferencias de los bancos a Notion
-    #=========================================
-
-    def registros_notion(conciliacion_payouts):
-        notion_token = "ntn_Yk820926168aR213bRsLF9pqG3t88PU0YMqhUazW4ap2qE"
-        database_id =  "21d030ee56d880de8976ce1b1fe6b8fc"
-
-        notion = Client(auth=notion_token)
-
-        status_placeholder = st.empty()
-        progress_bar = st.progress(0)
-
-        for idx, (_,rows) in enumerate(conciliacion_payouts.iterrows()):
-            try:
-                notion.pages.create(
-                    parent={'database_id': database_id},
-                    properties={
-                        'FechaTexto': {
-                            'rich_text': [{'text': {'content': str(rows.get('FechaTexto', ''))}}]
-                        },
-                        'BANCO': {
-                            'title': [{'text': {'content': str(rows.get('BANCO', ''))}}]
-                        },
-                        'Monto Banco': {
-                            'number': round(float(rows.get('Monto Banco', 0)), 2)
-                        },
-                        'Monto Kashio': {
-                            'number': round(float(rows.get('Monto Kashio', 0)), 2)
-                        },
-                        'Diferencia': {
-                            'number': round(float(rows.get('Diferencia', 0)), 2)
-                        },
-
-                        'Estado': {
-                            'select': {
-                                'name': str(rows.get('Estado', ''))
-                            }
-                        }                                      
-                    }
-                )
-
-                progress = (idx + 1) / len(conciliacion_payouts)
-
-                progress_bar.progress(min(progress,1.0))
-                status_placeholder.success(f'Registro {idx + 1} guardado correctamente')
-
-            except Exception as e:
-                status_placeholder.error(f'Registro {idx + 1} falló: {e}')
-
-    #=========================================
-    # Definicion de funciones de lectura de bancos
-    #=========================================                
-
-
     #=========================================
     # BCP
     #=========================================  
@@ -571,19 +367,19 @@ if payouts_metabase is not None:
                 #st.dataframe(metabase_filter_dife)
                 #boton para guardar  
 
-                c1, c2 = st.columns(2)      
-                with c1:          
-                    if not st.session_state.guardado_metabase:
-                        if st.button('Guardar conciliación en SharePoint', use_container_width=True):
-                            guardar_conciliacion(payouts_metabase_df, df_final)
-                            st.session_state.guardado_metabase = True
-                            #st.rerun()
-                with c2:
-                    if not st.session_state.guardar_record_dif:
-                        if st.button('Registrar diferencias en Notion', use_container_width=True):
-                            registros_notion(conciliacion_payouts)
-                            st.session_state.guardar_record_dif = True
-                            st.rerun()
+                # c1, c2 = st.columns(2)      
+                # with c1:          
+                #     if not st.session_state.guardado_metabase:
+                #         if st.button('Guardar conciliación en SharePoint', use_container_width=True):
+                #             guardar_conciliacion(payouts_metabase_df, df_final)
+                #             st.session_state.guardado_metabase = True
+                #             #st.rerun()
+                # with c2:
+                #     if not st.session_state.guardar_record_dif:
+                #         if st.button('Registrar diferencias en Notion', use_container_width=True):
+                #             registros_notion(conciliacion_payouts)
+                #             st.session_state.guardar_record_dif = True
+                #             st.rerun()
 
                 # st.divider()
                 # st.title('Busqueda de diferencias')
@@ -669,41 +465,27 @@ if payouts_metabase is not None:
 
             with st.container():
 
-                k1, k2 = st.columns(2)
-                with k1:
-                    # if not st.session_state.guardado_metabase:
-                    #     if st.button('Guardar conciliación en SharePoint', use_container_width=True):
-                    #         #payouts_metabase_df['Estado'] = f'Conci. {hoy_str}'
-                    #         payouts_metabase_df['Estado'] = f'Conciliacion_{fecha}' #en caso no funcione borrar
-                    #         guardar_conciliacion(payouts_metabase_df, df_final)
+                if not st.session_state.guardado_metabase:
+                    archivo_nombre = f'Conciliacion_{fecha}.xlsx'
 
-                    if not st.session_state.guardado_metabase:
-                        archivo_nombre = f'Conciliacion_{fecha}.xlsx'
+                    #agregamos la columna de estado antes de exportar
+                    payouts_metabase_df['Estado'] = f'Conciliacion_{fecha}' #en caso no funcione borrar
 
-                        #agregamos la columna de estado antes de exportar
-                        payouts_metabase_df['Estado'] = f'Conciliacion_{fecha}' #en caso no funcione borrar
+                    excel_buffer = io.BytesIO()
+                    with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+                        payouts_metabase_df.to_excel(writer, sheet_name='Payouts_Metabase', index=False)
+                        df_final.to_excel(writer, sheet_name='Operaciones Bancos', index=False)
 
-                        excel_buffer = io.BytesIO()
-                        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-                            payouts_metabase_df.to_excel(writer, sheet_name='Payouts_Metabase', index=False)
-                            df_final.to_excel(writer, sheet_name='Operaciones Bancos', index=False)
+                    excel_data = excel_buffer.getvalue()
 
-                        excel_data = excel_buffer.getvalue()
-
-                        st.download_button(
-                            label='DESCARGAR CONCILIACIÓN',
-                            data=excel_data,
-                            file_name=archivo_nombre,
-                            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                            use_container_width=True
-                        )
-                        
-                with k2:
-                    if not st.session_state.guardar_record_dif:
-                        if st.button('Registrar conciliacion en Notion', use_container_width=True):
-                            registros_notion(conciliacion_payouts)
-                            st.session_state.guardar_record_dif = True
-                            # st.rerun()
+                    st.download_button(
+                        label='DESCARGAR CONCILIACIÓN',
+                        data=excel_data,
+                        file_name=archivo_nombre,
+                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        use_container_width=True
+                    )
+            
 
                 # c1, c2 = st.columns(2)      
                 # with c1:          
