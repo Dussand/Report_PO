@@ -490,7 +490,7 @@ if payouts_metabase is not None:
                 # c1, c2 = st.columns(2)      
                 # with c1:          
                 #     if not st.session_state.guardado_metabase:
-                #         if st.button('Guardar conciliación en SharePoint', use_container_width=True):
+                #         if st.button('Guardar conciliación en SharePoint', use_container_width=True):sSi
                 #             guardar_conciliacion(payouts_metabase_df, df_final)
                 #             st.session_state.guardado_metabase = True
                 #             st.rerun()
